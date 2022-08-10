@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.ProcessEngineConfiguration;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
@@ -38,11 +39,14 @@ public class ProcessEngineBootstrapTest {
     Collection<MappedStatement> mappedStatements = new ArrayList<>(mybatisConfiguration.getMappedStatements());
 
     KryoObjectMapper mapper = new KryoObjectMapper(mybatisConfiguration);
-    mybatisConfiguration.getMappedStatements().clear();
+//    mybatisConfiguration.getMappedStatements().clear();
 //    ReflectionUtil.setField(mybatisConfiguration, "mappedStatements", new Configuration.Str<>());
 
+    Configuration newConfiguration = new Configuration();
+    newConfiguration.setEnvironment(mybatisConfiguration.getEnvironment());
+
     for (MappedStatement mappedStatement : mappedStatements) {
-      if (mybatisConfiguration.hasStatement(mappedStatement.getId())) {
+      if (newConfiguration.hasStatement(mappedStatement.getId())) {
         // mybatis stores a statement under two keys (short and long), so we iterate every
         // statement twice
         continue;
@@ -56,10 +60,23 @@ public class ProcessEngineBootstrapTest {
       ByteArrayInputStream inputStream = new ByteArrayInputStream(outStream.toByteArray());
       MappedStatement deserializedStatement = mapper.read(inputStream, MappedStatement.class);
 
-      mybatisConfiguration.addMappedStatement(deserializedStatement);
+      newConfiguration.addMappedStatement(deserializedStatement);
     }
 
-    Map<String, String> properties = processEngine.getManagementService().getProperties();
+//    engineConfiguration.setSqlSessionFactory(sqlSessionFactory);
+//    engineConfiguration.getDbSqlSessionFactory().setSqlSessionFactory(sqlSessionFactory);
+
+    ProcessEngineConfigurationImpl newEngineConfiguration = (ProcessEngineConfigurationImpl) ProcessEngineConfiguration
+        .createStandaloneInMemProcessEngineConfiguration()
+        .setProcessEngineName("newProcessEngine")
+        .setDatabaseSchemaUpdate("false");
+
+    DefaultSqlSessionFactory sqlSessionFactory = new DefaultSqlSessionFactory(newConfiguration);
+    newEngineConfiguration.setSqlSessionFactory(sqlSessionFactory);
+    ProcessEngine newProcessEngine = newEngineConfiguration
+        .buildProcessEngine();
+
+    Map<String, String> properties = newProcessEngine.getManagementService().getProperties();
     assertThat(properties).isNotEmpty();
   }
 
