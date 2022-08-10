@@ -38,6 +38,7 @@ import org.camunda.bpm.hackdays.serialization.kryo.UnmodifiableSetSerializer;
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 import org.objenesis.instantiator.ObjectInstantiator;
+import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
@@ -51,6 +52,7 @@ public class KryoObjectMapper {
   public KryoObjectMapper(Configuration configuration) {
     kryo = new Kryo();
     kryo.setRegistrationRequired(false);
+    kryo.setInstantiatorStrategy(new StdInstantiatorStrategy()); // creates objects without calling instructors
 
     kryo.register(MappedStatement.class, new MappedStatementSerializer(kryo));
     kryo.register(Configuration.class, new ConfigurationSerializer(configuration));
@@ -64,128 +66,11 @@ public class KryoObjectMapper {
     Class<? extends Map> unmodifiableMapClass = Collections.unmodifiableMap(new HashMap<>()).getClass();
     kryo.register(unmodifiableMapClass, new UnmodifiableMapSerializer());
 
-
-    Registration registration = kryo.register(DynamicSqlSource.class);
-    registration.setInstantiator(new ObjectInstantiator<DynamicSqlSource>() {
-      @Override
-      public DynamicSqlSource newInstance() {
-        return new DynamicSqlSource(null, null);
-      }
-    });
-
-    registration = kryo.register(MixedSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<MixedSqlNode>() {
-      @Override
-      public MixedSqlNode newInstance() {
-        return new MixedSqlNode(null);
-      }
-    });
-
-
-    registration = kryo.register(StaticTextSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<StaticTextSqlNode>() {
-      @Override
-      public StaticTextSqlNode newInstance() {
-        return new StaticTextSqlNode(null);
-      }
-    });
-
-    registration = kryo.register(ChooseSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<ChooseSqlNode>() {
-      @Override
-      public ChooseSqlNode newInstance() {
-        return new ChooseSqlNode(null, null);
-      }
-    });
-
-    registration = kryo.register(IfSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<IfSqlNode>() {
-      @Override
-      public IfSqlNode newInstance() {
-        return new IfSqlNode(null, null);
-      }
-    });
-
-
-    registration = kryo.register(ForEachSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<ForEachSqlNode>() {
-      @Override
-      public ForEachSqlNode newInstance() {
-        return new ForEachSqlNode(null, null, null, null, null, null, null, null);
-      }
-    });
-
-
-    registration = kryo.register(TextSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<TextSqlNode>() {
-      @Override
-      public TextSqlNode newInstance() {
-        return new TextSqlNode(null);
-      }
-    });
-
-
-    registration = kryo.register(TrimSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<TrimSqlNode>() {
-      @Override
-      public TrimSqlNode newInstance() {
-        return new TrimSqlNode(null, null, null, null, null, null);
-      }
-    });
-
-
-    registration = kryo.register(VarDeclSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<VarDeclSqlNode>() {
-      @Override
-      public VarDeclSqlNode newInstance() {
-        return new VarDeclSqlNode(null, null);
-      }
-    });
-
-
-    registration = kryo.register(WhereSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<WhereSqlNode>() {
-      @Override
-      public WhereSqlNode newInstance() {
-        return new WhereSqlNode(null, null);
-      }
-    });
-
-
-    registration = kryo.register(StaticSqlSource.class);
-    registration.setInstantiator(new ObjectInstantiator<StaticSqlSource>() {
-      @Override
-      public StaticSqlSource newInstance() {
-        return new StaticSqlSource(null, null);
-      }
-    });
-
-
-    Objenesis objenesis = new ObjenesisStd();
-    ObjectInstantiator<RawSqlSource> instantiator = objenesis.getInstantiatorOf(RawSqlSource.class);
-    registration = kryo.register(RawSqlSource.class);
-    registration.setInstantiator(new ObjectInstantiator<RawSqlSource>() {
-      @Override
-      public RawSqlSource newInstance() {
-        return instantiator.newInstance();
-      }
-    });
-
-
-    registration = kryo.register(UnknownTypeHandler.class);
+    Registration registration = kryo.register(UnknownTypeHandler.class);
     registration.setInstantiator(new ObjectInstantiator<UnknownTypeHandler>() {
       @Override
       public UnknownTypeHandler newInstance() {
         return new UnknownTypeHandler(configuration);
-      }
-    });
-
-
-    registration = kryo.register(SetSqlNode.class);
-    registration.setInstantiator(new ObjectInstantiator<SetSqlNode>() {
-      @Override
-      public SetSqlNode newInstance() {
-        return new SetSqlNode(null, null);
       }
     });
   }
