@@ -73,12 +73,19 @@ public class ProcessEngineBootstrapTest {
     ProcessEngineConfigurationImpl engineConfiguration = (ProcessEngineConfigurationImpl) processEngine.getProcessEngineConfiguration();
 
     Configuration mybatisConfiguration = engineConfiguration.getSqlSessionFactory().getConfiguration();
-    Collection<MappedStatement> mappedStatements = mybatisConfiguration.getMappedStatements();
+    Collection<MappedStatement> mappedStatements = new ArrayList<>(mybatisConfiguration.getMappedStatements());
 
     KryoObjectMapper mapper = new KryoObjectMapper(mybatisConfiguration);
-    ReflectionUtil.setField(mybatisConfiguration, "mappedStatements", new HashMap<>());
+    mybatisConfiguration.getMappedStatements().clear();
+//    ReflectionUtil.setField(mybatisConfiguration, "mappedStatements", new Configuration.Str<>());
 
     for (MappedStatement mappedStatement : mappedStatements) {
+      if (mybatisConfiguration.hasStatement(mappedStatement.getId())) {
+        // mybatis stores a statement under two keys (short and long), so we iterate every
+        // statement twice
+        continue;
+      }
+
       LOGGER.info("Processing statement {}", mappedStatement.getId());
       ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 

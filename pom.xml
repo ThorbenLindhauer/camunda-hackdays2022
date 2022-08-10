@@ -37,6 +37,12 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.objenesis</groupId>
+      <artifactId>objenesis</artifactId>
+      <version>3.3</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.esotericsoftware</groupId>
       <artifactId>kryo</artifactId>
       <version>5.3.0</version>
