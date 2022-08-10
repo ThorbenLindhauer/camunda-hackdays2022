@@ -1,4 +1,4 @@
-package org.camunda.bpm.hackdays.serialization;
+package org.camunda.bpm.hackdays.serialization.kryo;
 
 import org.apache.ibatis.session.Configuration;
 import org.slf4j.Logger;
@@ -13,15 +13,22 @@ public class ConfigurationSerializer extends Serializer<Configuration> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationSerializer.class);
 
+  private Configuration configuration;
+
+  public ConfigurationSerializer(Configuration configuration) {
+    super();
+    this.configuration = configuration;
+  }
+
   @Override
   public void write(Kryo kryo, Output output, Configuration object) {
-    LOGGER.info("Serializing Configuration object. Doing nothing.");
+//    LOGGER.info("Serializing Configuration object. Doing nothing.");
   }
 
   @Override
   public Configuration read(Kryo kryo, Input input, Class<? extends Configuration> type) {
-    LOGGER.info("Deserializing Configuration object. Doing nothing.");
-    return null;
+//    LOGGER.info("Deserializing Configuration object. Returning default configuration.");
+    return configuration;
   }
 
 }

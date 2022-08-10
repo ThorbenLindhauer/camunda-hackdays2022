@@ -4,20 +4,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlSource;
+import org.apache.ibatis.scripting.xmltags.DynamicSqlSource;
+import org.apache.ibatis.scripting.xmltags.MixedSqlNode;
 import org.apache.ibatis.session.Configuration;
+import org.assertj.core.util.Arrays;
 import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.ProcessEngineConfiguration;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
+import org.camunda.bpm.hackdays.serialization.KryoObjectMapper;
 import org.camunda.bpm.hackdays.serialization.MappedStatementReader;
 import org.camunda.bpm.hackdays.serialization.MappedStatementWriter;
-import org.camunda.bpm.hackdays.serialization.ReflectionBasedObjectMapper;
 import org.camunda.bpm.hackdays.serialization.ReflectionUtil;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -57,7 +64,7 @@ public class ProcessEngineBootstrapTest {
 
   @Test
   public void testSerializationWithKryo() {
-    Log.TRACE();
+    Log.DEBUG();
 
     ProcessEngine processEngine = ProcessEngineConfiguration
         .createStandaloneInMemProcessEngineConfiguration()
@@ -66,19 +73,25 @@ public class ProcessEngineBootstrapTest {
     ProcessEngineConfigurationImpl engineConfiguration = (ProcessEngineConfigurationImpl) processEngine.getProcessEngineConfiguration();
 
     Configuration mybatisConfiguration = engineConfiguration.getSqlSessionFactory().getConfiguration();
-    MappedStatement mappedStatement = mybatisConfiguration.getMappedStatements().iterator().next();
-    ReflectionUtil.setField(mappedStatement, "configuration", null);
+    Collection<MappedStatement> mappedStatements = mybatisConfiguration.getMappedStatements();
 
-    ReflectionBasedObjectMapper mapper = new ReflectionBasedObjectMapper();
+    KryoObjectMapper mapper = new KryoObjectMapper(mybatisConfiguration);
+    ReflectionUtil.setField(mybatisConfiguration, "mappedStatements", new HashMap<>());
 
-    ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    for (MappedStatement mappedStatement : mappedStatements) {
+      LOGGER.info("Processing statement {}", mappedStatement.getId());
+      ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
-    mapper.write(mappedStatement, outStream);
+      mapper.write(mappedStatement, outStream);
 
-    ByteArrayInputStream inputStream = new ByteArrayInputStream(outStream.toByteArray());
-    MappedStatement deserializedStatement = mapper.read(inputStream, MappedStatement.class);
+      ByteArrayInputStream inputStream = new ByteArrayInputStream(outStream.toByteArray());
+      MappedStatement deserializedStatement = mapper.read(inputStream, MappedStatement.class);
 
-    assertThat(deserializedStatement).isNotNull();
+      mybatisConfiguration.addMappedStatement(deserializedStatement);
+    }
+
+    Map<String, String> properties = processEngine.getManagementService().getProperties();
+    assertThat(properties).isNotEmpty();
   }
 
   public void writeMybatisConfigToStream(Configuration mybatisConfig, OutputStream stream) {
