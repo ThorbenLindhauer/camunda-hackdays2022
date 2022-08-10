@@ -23,6 +23,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.esotericsoftware.minlog.Log;
+
 public class ProcessEngineBootstrapTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessEngineBootstrapTest.class);
@@ -55,6 +57,8 @@ public class ProcessEngineBootstrapTest {
 
   @Test
   public void testSerializationWithKryo() {
+    Log.TRACE();
+
     ProcessEngine processEngine = ProcessEngineConfiguration
         .createStandaloneInMemProcessEngineConfiguration()
         .buildProcessEngine();
