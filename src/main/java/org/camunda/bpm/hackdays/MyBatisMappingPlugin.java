@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
@@ -67,8 +68,7 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
         Configuration myBatisConfiguration = new Configuration();
         DefaultSqlSessionFactory sqlSessionFactory = new DefaultSqlSessionFactory(myBatisConfiguration);
         processEngineConfiguration.setSqlSessionFactory(sqlSessionFactory);
-        // Configuration mybatisConfiguration =
-        // processEngineConfiguration.getSqlSessionFactory().getConfiguration();
+
         myBatisConfiguration.setEnvironment(environment);
         if (processEngineConfiguration.isJdbcBatchProcessing()) {
           myBatisConfiguration.setDefaultExecutorType(ExecutorType.BATCH);
@@ -77,18 +77,10 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
         KryoObjectMapper mapper = new KryoObjectMapper(myBatisConfiguration);
 
         List<MappedStatement> mybatisMappings = mapper.read(inputStream, ArrayList.class);
-        for (MappedStatement mappedStatement : mybatisMappings) {
-          if (myBatisConfiguration.hasStatement(mappedStatement.getId())) {
-            // mybatis stores a statement under two keys (short and long), so we
-            // iterate every
-            // statement twice
-            continue;
-          }
-          myBatisConfiguration.addMappedStatement(mappedStatement);
+        mybatisMappings.forEach(myBatisConfiguration::addMappedStatement);
 
-        }
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException("Could not restore Mybatis mappings from file system", e);
       }
 
       LOG.info("MyBatis mapping read");
@@ -109,7 +101,7 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
       if (Files.notExists(outputFile)) {
         LOG.info("Write mapping to file: {}", outputFile);
         Configuration mybatisConfiguration = processEngineConfiguration.getSqlSessionFactory().getConfiguration();
-        Collection<MappedStatement> mappedStatements = new ArrayList<>(mybatisConfiguration.getMappedStatements());
+        Collection<MappedStatement> mappedStatements = deduplicateCollection(mybatisConfiguration.getMappedStatements());
 
         KryoObjectMapper mapper = new KryoObjectMapper(mybatisConfiguration);
 
@@ -121,8 +113,12 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
         LOG.info("MyBatis mapping file already exists");
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Could not persist Mybatis mappings on file system", e);
     }
+  }
+
+  private <T> ArrayList<T> deduplicateCollection(Collection<T> collection) {
+    return new ArrayList<>(new HashSet<>(collection));
   }
 
   @Override
