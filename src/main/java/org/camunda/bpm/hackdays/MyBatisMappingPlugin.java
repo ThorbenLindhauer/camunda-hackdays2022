@@ -14,6 +14,7 @@ import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
@@ -29,7 +30,7 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
 
   public static final String MYBATIS_MAPPING_FILENAME = "camunda-mybatis.mapping";
   public static final String MAPPING_DIR = "C:\\Config";
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(MyBatisMappingPlugin.class);
 
   @Override
@@ -41,30 +42,33 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
       LOG.info("Read mapping from file {}", inputFile);
       try {
         InputStream inputStream = Files.newInputStream(inputFile);
-        
+
         TransactionFactory realTransactionFactory = null;
         if (processEngineConfiguration.getTransactionFactory() == null) {
           realTransactionFactory = new JdbcTransactionFactory();
         }
         processEngineConfiguration.setTransactionFactory(realTransactionFactory);
-        
+
         PooledDataSource pooledDataSource = new PooledDataSource(ReflectUtil.getClassLoader(),
             processEngineConfiguration.getJdbcDriver(), processEngineConfiguration.getJdbcUrl(),
             processEngineConfiguration.getJdbcUsername(), processEngineConfiguration.getJdbcPassword());
-        
+
         processEngineConfiguration.setDataSource(pooledDataSource);
-        
+
         Environment environment = new Environment("default", realTransactionFactory, pooledDataSource);
-        
+
         Configuration myBatisConfiguration = new Configuration();
         DefaultSqlSessionFactory sqlSessionFactory = new DefaultSqlSessionFactory(myBatisConfiguration);
         processEngineConfiguration.setSqlSessionFactory(sqlSessionFactory);
         // Configuration mybatisConfiguration =
         // processEngineConfiguration.getSqlSessionFactory().getConfiguration();
         myBatisConfiguration.setEnvironment(environment);
-        
+        if (processEngineConfiguration.isJdbcBatchProcessing()) {
+          myBatisConfiguration.setDefaultExecutorType(ExecutorType.BATCH);
+        }
+
         KryoObjectMapper mapper = new KryoObjectMapper(myBatisConfiguration);
-        
+
         List<MappedStatement> mybatisMappings = mapper.read(inputStream, ArrayList.class);
         for (MappedStatement mappedStatement : mybatisMappings) {
           if (myBatisConfiguration.hasStatement(mappedStatement.getId())) {
@@ -74,12 +78,12 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
             continue;
           }
           myBatisConfiguration.addMappedStatement(mappedStatement);
-          
+
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      
+
       LOG.info("MyBatis mapping read");
     } else {
       LOG.info("Mapping file doesn't exist, skipped it.");
@@ -97,9 +101,9 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
         LOG.info("Write mapping to file: {}", outputFile);
         Configuration mybatisConfiguration = processEngineConfiguration.getSqlSessionFactory().getConfiguration();
         Collection<MappedStatement> mappedStatements = new ArrayList<>(mybatisConfiguration.getMappedStatements());
-        
+
         KryoObjectMapper mapper = new KryoObjectMapper(mybatisConfiguration);
-        
+
         try (OutputStream outStream = Files.newOutputStream(outputFile)) {
           mapper.write(mappedStatements, outStream);
           outStream.flush();

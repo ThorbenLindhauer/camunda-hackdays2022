@@ -17,7 +17,7 @@
     <version.assertj>3.23.1</version.assertj>
 
     <!-- set the java version here -->
-    <version.java>1.8</version.java>
+    <version.java>11</version.java>
 
     <!-- set the plugin versions here -->
     <version.plugin.compiler>3.8.1</version.plugin.compiler>
