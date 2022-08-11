@@ -15,6 +15,7 @@ import java.util.List;
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
@@ -25,6 +26,8 @@ import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.cfg.ProcessEnginePlugin;
 import org.camunda.bpm.engine.impl.util.ReflectUtil;
 import org.camunda.bpm.hackdays.serialization.KryoObjectMapper;
+import org.camunda.bpm.hackdays.serialization.KryoObjectMapper.KryoReader;
+import org.camunda.bpm.hackdays.serialization.KryoObjectMapper.KryoWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,9 +78,13 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
         }
 
         KryoObjectMapper mapper = new KryoObjectMapper(myBatisConfiguration);
+        KryoReader reader = mapper.createReader(inputStream);
 
-        List<MappedStatement> mybatisMappings = mapper.read(inputStream, ArrayList.class);
+        List<MappedStatement> mybatisMappings = (List<MappedStatement>) reader.readNextObject();
         mybatisMappings.forEach(myBatisConfiguration::addMappedStatement);
+
+        List<ResultMap> resultMaps = (List<ResultMap>) reader.readNextObject();
+        resultMaps.forEach(myBatisConfiguration::addResultMap);
 
       } catch (IOException e) {
         throw new RuntimeException("Could not restore Mybatis mappings from file system", e);
@@ -101,14 +108,20 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
       if (Files.notExists(outputFile)) {
         LOG.info("Write mapping to file: {}", outputFile);
         Configuration mybatisConfiguration = processEngineConfiguration.getSqlSessionFactory().getConfiguration();
+
         Collection<MappedStatement> mappedStatements = deduplicateCollection(mybatisConfiguration.getMappedStatements());
+        List<ResultMap> resultMaps = deduplicateCollection(mybatisConfiguration.getResultMaps());
 
         KryoObjectMapper mapper = new KryoObjectMapper(mybatisConfiguration);
 
         try (OutputStream outStream = Files.newOutputStream(outputFile)) {
-          mapper.write(mappedStatements, outStream);
+          KryoWriter writer = mapper.createWriter(outStream);
+          writer.write(mappedStatements);
+          writer.write(resultMaps);
+
           outStream.flush();
         }
+
       } else {
         LOG.info("MyBatis mapping file already exists");
       }

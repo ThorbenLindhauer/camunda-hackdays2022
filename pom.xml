@@ -17,7 +17,7 @@
     <version.assertj>3.23.1</version.assertj>
 
     <!-- set the java version here -->
-    <version.java>11</version.java>
+    <version.java>1.8</version.java>
 
     <!-- set the plugin versions here -->
     <version.plugin.compiler>3.8.1</version.plugin.compiler>
@@ -47,6 +47,7 @@
     <dependency>
       <groupId>org.camunda.bpm</groupId>
       <artifactId>camunda-engine</artifactId>
+      <scope>provided</scope>
     </dependency>
     <!-- junit -->
     <dependency>
@@ -69,6 +70,7 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>${version.h2}</version>
+      <scope>test</scope>
     </dependency>
 
     <!-- others -->

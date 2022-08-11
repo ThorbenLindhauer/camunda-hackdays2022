@@ -75,14 +75,43 @@ public class KryoObjectMapper {
     });
   }
 
-  public void write(Object objectToWrite, OutputStream outStream) {
+  public static class KryoWriter {
 
-    Output output = new Output(outStream);
-    kryo.writeObject(output, objectToWrite);
-    output.flush();
+    private Kryo kryo;
+    private Output output;
+
+    public KryoWriter(Kryo kryo, Output output) {
+      this.kryo = kryo;
+      this.output = output;
+    }
+
+    public void write(Object objectToWrite) {
+      kryo.writeClassAndObject(output, objectToWrite);
+      output.flush();
+    }
   }
 
-  public <T> T read(InputStream inputStream, Class<T> clazz) {
-    return kryo.readObject(new Input(inputStream), clazz);
+  public static class KryoReader {
+
+    private Kryo kryo;
+    private Input input;
+
+    public KryoReader(Kryo kryo, Input input) {
+      this.kryo = kryo;
+      this.input = input;
+    }
+
+    public Object readNextObject() {
+      return kryo.readClassAndObject(input);
+    }
+  }
+
+  public KryoWriter createWriter(OutputStream outStream) {
+
+    return new KryoWriter(kryo, new Output(outStream));
+  }
+
+  public KryoReader createReader(InputStream inputStream) {
+    return new KryoReader(kryo, new Input(inputStream));
   }
 }

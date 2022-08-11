@@ -15,6 +15,8 @@ import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.ProcessEngineConfiguration;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.hackdays.serialization.KryoObjectMapper;
+import org.camunda.bpm.hackdays.serialization.KryoObjectMapper.KryoReader;
+import org.camunda.bpm.hackdays.serialization.KryoObjectMapper.KryoWriter;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,10 +57,14 @@ public class ProcessEngineBootstrapTest {
       LOGGER.info("Processing statement {}", mappedStatement.getId());
       ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
-      mapper.write(mappedStatement, outStream);
+      KryoWriter writer = mapper.createWriter(outStream);
+
+      writer.write(mappedStatement);
 
       ByteArrayInputStream inputStream = new ByteArrayInputStream(outStream.toByteArray());
-      MappedStatement deserializedStatement = mapper.read(inputStream, MappedStatement.class);
+      KryoReader reader = mapper.createReader(inputStream);
+
+      MappedStatement deserializedStatement = (MappedStatement) reader.readNextObject();
 
       newConfiguration.addMappedStatement(deserializedStatement);
     }
