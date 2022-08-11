@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.mapping.Environment;
@@ -18,6 +19,7 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ExecutorType;
+import org.apache.ibatis.session.defaults.DefaultSqlSession.StrictMap;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
@@ -109,8 +111,8 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
         LOG.info("Write mapping to file: {}", outputFile);
         Configuration mybatisConfiguration = processEngineConfiguration.getSqlSessionFactory().getConfiguration();
 
-        Collection<MappedStatement> mappedStatements = deduplicateCollection(mybatisConfiguration.getMappedStatements());
-        List<ResultMap> resultMaps = deduplicateCollection(mybatisConfiguration.getResultMaps());
+        Collection<MappedStatement> mappedStatements = deduplicateAndFilterCollection(mybatisConfiguration.getMappedStatements());
+        List<ResultMap> resultMaps = deduplicateAndFilterCollection(mybatisConfiguration.getResultMaps());
 
         KryoObjectMapper mapper = new KryoObjectMapper(mybatisConfiguration);
 
@@ -130,8 +132,14 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
     }
   }
 
-  private <T> ArrayList<T> deduplicateCollection(Collection<T> collection) {
-    return new ArrayList<>(new HashSet<>(collection));
+  private <T> ArrayList<T> deduplicateAndFilterCollection(Collection<T> collection) {
+    return new ArrayList<>(new HashSet<>(filterCollectionByAmbiguityClass(collection)));
+  }
+
+  private <T> ArrayList<T> filterCollectionByAmbiguityClass(Collection<T> collection) {
+    return collection.stream()
+        .filter(i -> !i.getClass().getName().contains("Ambiguity"))
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 
   @Override
