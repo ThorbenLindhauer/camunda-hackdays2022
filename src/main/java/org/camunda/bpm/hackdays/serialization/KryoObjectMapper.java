@@ -79,7 +79,7 @@ public class KryoObjectMapper {
 
     Output output = new Output(outStream);
     kryo.writeObject(output, objectToWrite);
-    output.close();
+    output.flush();
   }
 
   public <T> T read(InputStream inputStream, Class<T> clazz) {
