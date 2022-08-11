@@ -3,6 +3,7 @@ package org.camunda.bpm.hackdays;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,15 +30,21 @@ import org.slf4j.LoggerFactory;
 public class MyBatisMappingPlugin implements ProcessEnginePlugin {
 
   public static final String MYBATIS_MAPPING_FILENAME = "camunda-mybatis.mapping";
-  public static final String MAPPING_DIR = "C:\\Config";
+  public static final String DEFAULT_MAPPING_DIR = System.getProperty("java.io.tmpdir") + "/camunda-mybatis-mappings";
 
   private static final Logger LOG = LoggerFactory.getLogger(MyBatisMappingPlugin.class);
+
+  private String mappingDirectory = DEFAULT_MAPPING_DIR;
+
 
   @Override
   public void preInit(ProcessEngineConfigurationImpl processEngineConfiguration) {
     LOG.info("Mybatis mapping pre init");
 
-    Path inputFile = FileSystems.getDefault().getPath(MAPPING_DIR, MYBATIS_MAPPING_FILENAME);
+    FileSystem fileSystem = FileSystems.getDefault();
+    Path mappingDirectoryPath = getMappingDirectory(fileSystem);
+
+    Path inputFile = mappingDirectoryPath.resolve(MYBATIS_MAPPING_FILENAME);
     if (Files.exists(inputFile)) {
       LOG.info("Read mapping from file {}", inputFile);
       try {
@@ -94,9 +101,11 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
   public void postInit(ProcessEngineConfigurationImpl processEngineConfiguration) {
     LOG.info("MyBatis mapping post init");
     try {
-      Path outputDir = FileSystems.getDefault().getPath(MAPPING_DIR);
-      Files.createDirectories(outputDir);
-      Path outputFile = outputDir.resolve(MYBATIS_MAPPING_FILENAME);
+      FileSystem fileSystem = FileSystems.getDefault();
+      Path mappingDirectoryPath = getMappingDirectory(fileSystem);
+
+      Files.createDirectories(mappingDirectoryPath);
+      Path outputFile = mappingDirectoryPath.resolve(MYBATIS_MAPPING_FILENAME);
       if (Files.notExists(outputFile)) {
         LOG.info("Write mapping to file: {}", outputFile);
         Configuration mybatisConfiguration = processEngineConfiguration.getSqlSessionFactory().getConfiguration();
@@ -122,4 +131,23 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
 
   }
 
+  public String getMappingDirectory() {
+    return mappingDirectory;
+  }
+
+  public void setMappingDirectory(String mappingDirectory) {
+    this.mappingDirectory = mappingDirectory;
+  }
+
+  public static Path getDefaultMappingDirectory(FileSystem fileSystem) {
+    String jvmTempDir = System.getProperty("java.io.tmpdir");
+
+    return fileSystem.getPath(jvmTempDir, "camunda-mybatis-mappings");
+  }
+
+  public Path getMappingDirectory(FileSystem fileSystem) {
+    return mappingDirectory != null ?
+        fileSystem.getPath(mappingDirectory) :
+        getDefaultMappingDirectory(fileSystem);
+  }
 }

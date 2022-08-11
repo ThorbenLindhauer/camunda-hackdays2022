@@ -21,7 +21,7 @@ public class PluginTest {
   @Test
     public void test1WriteMapping() {
       try {
-        Files.delete(Path.of(MyBatisMappingPlugin.MAPPING_DIR, MyBatisMappingPlugin.MYBATIS_MAPPING_FILENAME));
+        Files.delete(Path.of(MyBatisMappingPlugin.DEFAULT_MAPPING_DIR, MyBatisMappingPlugin.MYBATIS_MAPPING_FILENAME));
       } catch (IOException e) {
         LOG.info("File doesn't exist: {}", e.getLocalizedMessage());
       }
