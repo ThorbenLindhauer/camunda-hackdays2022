@@ -113,6 +113,12 @@ public class MappingRegistry {
       return null;
     }
 
+    if (mappingParameters.isSnapshotVersion()) {
+      LOG.warn("Loading Mybatis mappings for snapshot version {}. It is possible "
+          + "that the persisted mappings are different from the actual mappings "
+          + "by now.", mappingParameters.getEngineVersion());
+    }
+
     Configuration result = new Configuration();
 
     InputStream inputStream;
@@ -176,6 +182,11 @@ public class MappingRegistry {
       int positiveHash = Math.abs(hash);
 
       return Integer.toString(positiveHash);
+    }
+
+    @JsonIgnore
+    public boolean isSnapshotVersion() {
+      return engineVersion.contains("SNAPSHOT");
     }
 
     @JsonIgnore
