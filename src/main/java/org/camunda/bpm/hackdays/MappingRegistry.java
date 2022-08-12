@@ -11,12 +11,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.session.Configuration;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
+import org.camunda.bpm.engine.impl.db.sql.DbSqlSessionFactory;
 import org.camunda.bpm.engine.impl.util.ParseUtil;
 import org.camunda.bpm.engine.impl.util.ProcessEngineDetails;
 import org.camunda.bpm.hackdays.serialization.KryoObjectMapper;
@@ -166,9 +169,13 @@ public class MappingRegistry {
   public static class MappingParameters {
     // TODO: implement more params
     private String engineVersion;
+    private Properties parsingProperties;
 
     public String hash() {
-      return engineVersion;
+      int hash = Objects.hash(engineVersion, parsingProperties);
+      int positiveHash = Math.abs(hash);
+
+      return Integer.toString(positiveHash);
     }
 
     @JsonIgnore
@@ -182,14 +189,31 @@ public class MappingRegistry {
     }
 
     public static MappingParameters of(ProcessEngineConfigurationImpl engineConfiguration) {
-      ProcessEngineDetails engineInfo = ParseUtil.parseProcessEngineVersion(true);
-      String engineVersion = engineInfo.getVersion();
-
       MappingParameters result = new MappingParameters();
 
+      ProcessEngineDetails engineInfo = ParseUtil.parseProcessEngineVersion(true);
+      String engineVersion = engineInfo.getVersion();
       result.engineVersion = engineVersion;
 
+      result.parsingProperties = getParsingProperties(engineConfiguration);
+
       return result;
+    }
+
+    private static Properties getParsingProperties(ProcessEngineConfigurationImpl engineConfiguration) {
+      Properties properties = new Properties();
+
+      if (engineConfiguration.isUseSharedSqlSessionFactory()) {
+        properties.put("prefix", "${@org.camunda.bpm.engine.impl.context.Context@getProcessEngineConfiguration().databaseTablePrefix}");
+      } else {
+        properties.put("prefix", engineConfiguration.getDatabaseTablePrefix());
+      }
+
+      ProcessEngineConfigurationImpl.initSqlSessionFactoryProperties(properties,
+          engineConfiguration.getDatabaseTablePrefix(),
+          engineConfiguration.getDatabaseType());
+
+      return properties;
     }
 
     public String getEngineVersion() {
@@ -198,6 +222,14 @@ public class MappingRegistry {
 
     public void setEngineVersion(String engineVersion) {
       this.engineVersion = engineVersion;
+    }
+
+    public Properties getParsingProperties() {
+      return parsingProperties;
+    }
+
+    public void setParsingProperties(Properties parsingProperties) {
+      this.parsingProperties = parsingProperties;
     }
   }
 

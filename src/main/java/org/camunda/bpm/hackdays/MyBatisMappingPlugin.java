@@ -3,6 +3,7 @@ package org.camunda.bpm.hackdays;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.Properties;
 
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.mapping.Environment;
@@ -41,6 +42,11 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
         processEngineConfiguration.getJdbcUsername(), processEngineConfiguration.getJdbcPassword());
 
     processEngineConfiguration.setDataSource(pooledDataSource);
+
+    // the database type is a parameter
+    // of the mybatis mappings, so we need to initialize it before we can
+    // load them.
+    processEngineConfiguration.initDatabaseType();
 
     Environment environment = new Environment("default", realTransactionFactory, pooledDataSource);
 
