@@ -175,7 +175,6 @@ public class MappingRegistry {
   }
 
   public static class MappingParameters {
-    // TODO: implement more params
     private String engineVersion;
     private Properties parsingProperties;
 
