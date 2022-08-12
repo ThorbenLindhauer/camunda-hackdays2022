@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 public class MappingRegistry {
 
@@ -67,7 +68,8 @@ public class MappingRegistry {
 
     try (OutputStream outStream = Files.newOutputStream(outputFile)) {
       ObjectMapper jsonMapper = new ObjectMapper();
-      jsonMapper.writeValue(outStream, mappingParameters);
+      ObjectWriter writer = jsonMapper.writerWithDefaultPrettyPrinter();
+      writer.writeValue(outStream, mappingParameters);
 
       outStream.flush();
     } catch (Exception e) {
