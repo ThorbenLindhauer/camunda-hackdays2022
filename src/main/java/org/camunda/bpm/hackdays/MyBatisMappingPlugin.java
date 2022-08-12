@@ -3,7 +3,8 @@ package org.camunda.bpm.hackdays;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.util.Properties;
+
+import javax.sql.DataSource;
 
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.mapping.Environment;
@@ -31,24 +32,27 @@ public class MyBatisMappingPlugin implements ProcessEnginePlugin {
   public void preInit(ProcessEngineConfigurationImpl processEngineConfiguration) {
     LOG.info("Mybatis mapping pre init");
 
-    TransactionFactory realTransactionFactory = null;
+    TransactionFactory realTransactionFactory = processEngineConfiguration.getTransactionFactory();
     if (processEngineConfiguration.getTransactionFactory() == null) {
       realTransactionFactory = new JdbcTransactionFactory();
+      processEngineConfiguration.setTransactionFactory(realTransactionFactory);
     }
-    processEngineConfiguration.setTransactionFactory(realTransactionFactory);
 
-    PooledDataSource pooledDataSource = new PooledDataSource(ReflectUtil.getClassLoader(),
-        processEngineConfiguration.getJdbcDriver(), processEngineConfiguration.getJdbcUrl(),
-        processEngineConfiguration.getJdbcUsername(), processEngineConfiguration.getJdbcPassword());
+    DataSource dataSource = processEngineConfiguration.getDataSource();
+    if (dataSource == null) {
+      dataSource = new PooledDataSource(ReflectUtil.getClassLoader(),
+          processEngineConfiguration.getJdbcDriver(), processEngineConfiguration.getJdbcUrl(),
+          processEngineConfiguration.getJdbcUsername(), processEngineConfiguration.getJdbcPassword());
 
-    processEngineConfiguration.setDataSource(pooledDataSource);
+      processEngineConfiguration.setDataSource(dataSource);
+    }
 
     // the database type is a parameter
     // of the mybatis mappings, so we need to initialize it before we can
     // load them.
     processEngineConfiguration.initDatabaseType();
 
-    Environment environment = new Environment("default", realTransactionFactory, pooledDataSource);
+    Environment environment = new Environment("default", realTransactionFactory, dataSource);
 
     MappingRegistry mappingRegistry = createMappingRegistry();
     MappingParameters params = MappingParameters.of(processEngineConfiguration);
